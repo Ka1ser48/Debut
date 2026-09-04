@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шахматная Академия — 50 Дебютов</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #121110; color: #f0e6d2; padding: 15px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    header { text-align: center; margin-bottom: 20px; }
+    header h1 { color: #e6c687; font-size: 1.8rem; margin-bottom: 5px; }
+    header p { color: #a89f91; font-size: 0.95rem; }
+
+    .search-box {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #544738;
+      background: #1c1916;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+    .search-box:focus { border-color: #c5a059; }
+
+    .stats {
+      margin-bottom: 15px;
+      color: #c5a059;
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: #1c1916;
+      border: 1px solid #3d352b;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.1s;
+    }
+    .card:active { transform: scale(0.98); }
+    .card-num { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+    .card-title { color: #e6c687; font-size: 1rem; font-weight: bold; margin-bottom: 6px; }
+    .card-moves { font-family: monospace; color: #c5a059; font-size: 0.85rem; word-break: break-word; }
+
+    /* Модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: #1c1916;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #c5a059;
+      max-width: 450px;
+      width: 100%;
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.8rem;
+      color: #a89f91;
+      cursor: pointer;
+    }
+
+    .m-title { color: #e6c687; margin-bottom: 10px; padding-right: 20px; }
+    .m-moves {
+      background: #11100f;
+      padding: 12px;
+      border-radius: 6px;
+      color: #c5a059;
+      font-family: monospace;
+      font-size: 1rem;
+      line-height: 1.4;
+      border: 1px solid #3d352b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Шахматная Академия</h1>
+      <p>Справочник: 50 шахматных дебютов</p>
+    </header>
+
+    <input type="text" id="search" class="search-box" placeholder="🔍 Поиск дебюта (например: Французская, e4, гамбит)..." oninput="filterOpenings()">
+    
+    <div class="stats" id="count-info">Найдено: 50</div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <h2 id="m-title" class="m-title"></h2>
+      <div id="m-moves" class="m-moves"></div>
+    </div>
+  </div>
+
+  <script>
+    const database = [
+      // Открытые дебюты (1. e4 e5)
+      { id: 1, title: "Итальянская партия", moves: "1. e4 e5 2. Nf3 Nc6 3. Bc4" },
+      { id: 2, title: "Испанская партия (Ruy Lopez)", moves: "1. e4 e5 2. Nf3 Nc6 3. Bb5" },
+      { id: 3, title: "Шотландская партия", moves: "1. e4 e5 2. Nf3 Nc6 3. d4" },
+      { id: 4, title: "Защита Русская (Петрова)", moves: "1. e4 e5 2. Nf3 Nf6" },
+      { id: 5, title: "Защита Филидора", moves: "1. e4 e5 2. Nf3 d6" },
+      { id: 6, title: "Защита двух коней", moves: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6" },
+      { id: 7, title: "Дебют четырех коней", moves: "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6" },
+      { id: 8, title: "Королевский гамбит", moves: "1. e4 e5 2. f4" },
+      { id: 9, title: "Гамбит Эванса", moves: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4" },
+      { id: 10, title: "Детский мат", moves: "1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#" },
+      { id: 11, title: "Венская партия", moves: "1. e4 e5 2. Nc3" },
+      { id: 12, title: "Центральный дебют", moves: "1. e4 e5 2. d4 exd4 3. Qxd4" },
+
+      // Полуоткрытые дебюты (1. e4 ...)
+      { id: 13, title: "Сицилианская защита", moves: "1. e4 c5" },
+      { id: 14, title: "Французская защита", moves: "1. e4 e6 2. d4 d5" },
+      { id: 15, title: "Защита Каро-Канн", moves: "1. e4 c6 2. d4 d5" },
+      { id: 16, title: "Защита Пирца-Уфимцева", moves: "1. e4 d6 2. d4 Nf6 3. Nc3 g6" },
+      { id: 17, title: "Скандинавская защита", moves: "1. e4 d5" },
+      { id: 18, title: "Защита Алехина", moves: "1. e4 Nf6" },
+      { id: 19, title: "Защита Нимцовича", moves: "1. e4 Nc6" },
+      { id: 20, title: "Сицилианская: Вариант Дракона", moves: "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6" },
+      { id: 21, title: "Сицилианская: Вариант Найдорфа", moves: "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6" },
+      { id: 22, title: "Сицилианская: Челябинский вариант", moves: "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 e5" },
+
+      // Закрытые дебюты (1. d4 d5)
+      { id: 23, title: "Ферзевый гамбит", moves: "1. d4 d5 2. c4" },
+      { id: 24, title: "Принятый ферзевый гамбит", moves: "1. d4 d5 2. c4 dxc4" },
+      { id: 25, title: "Отказанный ферзевый гамбит", moves: "1. d4 d5 2. c4 e6" },
+      { id: 26, title: "Славянская защита", moves: "1. d4 d5 2. c4 c6" },
+      { id: 27, title: "Лондонская система", moves: "1. d4 d5 2. Nf3 Nf6 3. Bf4" },
+      { id: 28, title: "Дебют Тромповского", moves: "1. d4 Nf6 2. Bg5" },
+      { id: 29, title: "Система Колле", moves: "1. d4 d5 2. Nf3 Nf6 3. e3" },
+      { id: 30, title: "Гамбит Альбина", moves: "1. d4 d5 2. c4 e5" },
+
+      // Индийские защиты и полузакрытые (1. d4 Nf6 / другое)
+      { id: 31, title: "Староиндийская защита", moves: "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7" },
+      { id: 32, title: "Защита Нимцовича", moves: "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4" },
+      { id: 33, title: "Новоиндийская защита", moves: "1. d4 Nf6 2. c4 e6 3. Nf3 b6" },
+      { id: 34, title: "Защита Грюнфельда", moves: "1. d4 Nf6 2. c4 g6 3. Nc3 d5" },
+      { id: 35, title: "Защита Бенони", moves: "1. d4 Nf6 2. c4 c5 3. d5" },
+      { id: 36, title: "Волжский гамбит (Бенко)", moves: "1. d4 Nf6 2. c4 c5 3. d5 b5" },
+      { id: 37, title: "Голландская защита", moves: "1. d4 f5" },
+      { id: 38, title: "Будапештский гамбит", moves: "1. d4 Nf6 2. c4 e5" },
+
+      // Фланговые и редкие дебюты
+      { id: 39, title: "Английское начало", moves: "1. c4" },
+      { id: 40, title: "Дебют Рети", moves: "1. Nf3 d5 2. c4" },
+      { id: 41, title: "Староиндийское начало", moves: "1. Nf3 d5 2. g3 Nf6 3. Bg2" },
+      { id: 42, title: "Дебют Бёрда", moves: "1. f4" },
+      { id: 43, title: "Дебют Ларсена", moves: "1. b3" },
+      { id: 44, title: "Дебют Сокольского (Оранжерея)", moves: "1. b4" },
+      { id: 45, title: "Дебют Гроба", moves: "1. g4" },
+
+      // Ловушки и острые гамбиты
+      { id: 46, title: "Северный (Датский) гамбит", moves: "1. e4 e5 2. d4 exd4 3. c3" },
+      { id: 47, title: "Шотландский гамбит", moves: "1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Bc4" },
+      { id: 48, title: "Гамбит Блэкмар-Димера", moves: "1. d4 d5 2. e4 dxe4 3. Nc3" },
+      { id: 49, title: "Гамбит Хэллоуин", moves: "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Nxe5" },
+      { id: 50, title: "Защита Святого Георгия", moves: "1. e4 a6" }
+    ];
+
+    function render(items) {
+      const grid = document.getElementById('grid');
+      const countInfo = document.getElementById('count-info');
+      grid.innerHTML = '';
+      
+      countInfo.textContent = `Найдено: ${items.length}`;
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.onclick = () => openModal(item);
+        card.innerHTML = `
+          <div class="card-num">#${item.id}</div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-moves">${item.moves}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterOpenings() {
+      const query = document.getElementById('search').value.toLowerCase();
+      const filtered = database.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.moves.toLowerCase().includes(query) ||
+        item.id.toString() === query
+      );
+      render(filtered);
+    }
+
+    function openModal(item) {
+      document.getElementById('m-title').textContent = `#${item.id} ${item.title}`;
+      document.getElementById('m-moves').textContent = item.moves;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    // Первоначальный вывод
+    render(database);
+  </script>
+</body>
+</html>
